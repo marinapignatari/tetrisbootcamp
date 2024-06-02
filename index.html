@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio Tetris do Bootcamp</title>
+    <style>
+        body {
+            background-color: #2d0047;
+            font-family: 'Press Start 2P', cursive;
+            color: #ffffff;
+            text-align: center;
+        }
+        #game-container {
+            background-color: #1e1e1e;
+            width: 320px;
+            height: 640px;
+            margin: 0 auto;
+            border: 20px solid #f2b700;
+            position: relative;
+        }
+        canvas {
+            background-color: #000;
+            display: block;
+            margin: 0 auto;
+        }
+        .coupon {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #00aaff;
+            color: #000;
+            border-radius: 5px;
+        }
+        #scoreboard {
+            margin: 20px auto;
+            width: 320px;
+            text-align: center;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border: 2px solid #f2b700;
+            border-radius: 5px;
+        }
+        #help {
+            margin: 20px auto;
+            width: 80%;
+            text-align: left;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border: 2px solid #f2b700;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>DESAFIO TETRIS DO BOOTCAMP</h1>
+    <div id="game-container">
+        <canvas id="tetris" width="300" height="600"></canvas>
+    </div>
+    <div id="scoreboard">Pontuação: <span id="score">0</span></div>
+    <div class="coupon" id="coupon">Parabéns! Você ganhou um cupom de desconto: DESCONTO50</div>
+    <div id="help">
+        <h2>Como Jogar</h2>
+        <p>Use as setas do teclado para mover as peças:</p>
+        <ul>
+            <li>Seta Esquerda: Mover para a esquerda</li>
+            <li>Seta Direita: Mover para a direita</li>
+            <li>Seta para Baixo: Acelerar a queda da peça</li>
+            <li>Tecla W: Girar a peça</li>
+        </ul>
+        <p>Complete linhas para ganhar pontos. Ao completar 50 pontos, você ganhará um cupom de desconto que será exibido na tela.</p>
+    </div>
+    <script>
+        const canvas = document.getElementById('tetris');
+        const context = canvas.getContext('2d');
+
+        context.scale(20, 20);
+
+        const dropSound = new Audio('https://example.com/drop.mp3');
+        const lineClearSound = new Audio('https://example.com/line-clear.mp3');
+        const rotateSound = new Audio('https://example.com/rotate.mp3');
+
+        function arenaSweep() {
+            let rowCount = 1;
+            outer: for (let y = arena.length - 1; y > 0; --y) {
+                for (let x = 0; x < arena[y].length; ++x) {
+                    if (arena[y][x] === 0) {
+                        continue outer;
+                    }
+                }
+
+                const row = arena.splice(y, 1)[0].fill(0);
+                arena.unshift(row);
+                ++y;
+
+                player.score += rowCount * 10;
+                rowCount *= 2;
+                lineClearSound.play();
+            }
+
+            if (player.score >= 50 && !couponDisplayed) {
+                document.getElementById('coupon').style.display = 'block';
+                couponDisplayed = true;
+            }
+        }
+
+        function collide(arena, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 &&
+                       (arena[y + o.y] &&
+                        arena[y + o.y][x + o.x]) !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function createMatrix(w, h) {
+            const matrix = [];
+            while (h--) {
+                matrix.push(new Array(w).fill(0));
+            }
+            return matrix;
+        }
+
+        function createPiece(type) {
+            if (type === 'T') {
+                return [
+                    [0, 0, 0],
+                    [1, 1, 1],
+                    [0, 1, 0],
+                ];
+            } else if (type === 'O') {
+                return [
+                    [2, 2],
+                    [2, 2],
+                ];
+            } else if (type === 'L') {
+                return [
+                    [0, 3, 0],
+                    [0, 3, 0],
+                    [0, 3, 3],
+                ];
+            } else if (type === 'J') {
+                return [
+                    [0, 4, 0],
+                    [0, 4, 0],
+                    [4, 4, 0],
+                ];
+            } else if (type === 'I') {
+                return [
+                    [0, 5, 0, 0],
+                    [0, 5, 0, 0],
+                    [0, 5, 0, 0],
+                    [0, 5, 0, 0],
+                ];
+            } else if (type === 'S') {
+                return [
+                    [0, 6, 6],
+                    [6, 6, 0],
+                    [0, 0, 0],
+                ];
+            } else if (type === 'Z') {
+                return [
+                    [7, 7, 0],
+                    [0, 7, 7],
+                    [0, 0, 0],
+                ];
+            }
+        }
+
+        function drawMatrix(matrix, offset) {
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        context.fillStyle = colors[value];
+                        context.fillRect(x + offset.x,
+                                         y + offset.y,
+                                         1, 1);
+                    }
+                });
+            });
+        }
+
+        function draw() {
+            context.fillStyle = '#000';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawMatrix(arena, {x: 0, y: 0});
+            drawMatrix(player.matrix, player.pos);
+        }
+
+        function merge(arena, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        arena[y + player.pos.y][x + player.pos.x] = value;
+                    }
+                });
+            });
+        }
+
+        function rotate(matrix, dir) {
+            for (let y = 0; y < matrix.length; ++y) {
+                for (let x = 0; x < y; ++x) {
+                    [
+                        matrix[x][y],
+                        matrix[y][x],
+                    ] = [
+                        matrix[y][x],
+                        matrix[x][y],
+                    ];
+                }
+            }
+
+            if (dir > 0) {
+                matrix.forEach(row => row.reverse());
+            } else {
+                matrix.reverse();
+            }
+            rotateSound.play();
+        }
+
+        function playerDrop() {
+            player.pos.y++;
+            if (collide(arena, player)) {
+                player.pos.y--;
+                merge(arena, player);
+                playerReset();
+                arenaSweep();
+                updateScore();
+                dropSound.play();
+            }
+            dropCounter = 0;
+        }
+
+        function playerMove(dir) {
+            player.pos.x += dir;
+            if (collide(arena, player)) {
+                player.pos.x -= dir;
+            }
+        }
+
+        function playerReset() {
+            const pieces = 'TJLOSZI';
+            player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+            player.pos.y = 0;
+            player.pos.x = (arena[0].length / 2 | 0) -
+                           (player.matrix[0].length / 2 | 0);
+            if (collide(arena, player)) {
+                arena.forEach(row => row.fill(0));
+                player.score = 0;
+                updateScore();
+            }
+        }
+
+        function playerRotate(dir) {
+            const pos = player.pos.x;
+            let offset = 1;
+            rotate(player.matrix, dir);
+            while (collide(arena, player)) {
+                player.pos.x += offset;
+                offset = -(offset + (offset > 0 ? 1 : -1));
+                if (offset > player.matrix[0].length) {
+                    rotate(player.matrix, -dir);
+                    player.pos.x = pos;
+                    return;
+                }
+            }
+        }
+
+        let dropCounter = 0;
+        let dropInterval = 1000;
+
+        let lastTime = 0;
+
+        function update(time = 0) {
+            const deltaTime = time - lastTime;
+
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) {
+                playerDrop();
+            }
+
+            lastTime = time;
+
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function updateScore() {
+            document.getElementById('score').innerText = player.score;
+        }
+
+        const colors = [
+            null,
+            '#FF0D72',
+            '#0DC2FF',
+            '#0DFF72',
+            '#F538FF',
+            '#FF8E0D',
+            '#FFE138',
+            '#3877FF',
+        ];
+
+        const arena = createMatrix(12, 20);
+
+        const player = {
+            pos: {x: 0, y: 0},
+            matrix: null,
+            score: 0,
+        };
+
+        let couponDisplayed = false;
+
+        document.addEventListener('keydown', event => {
+            if (event.keyCode === 37) {
+                playerMove(-1);
+            } else if (event.keyCode === 39) {
+                playerMove(1);
+            } else if (event.keyCode === 40) {
+                playerDrop();
+            } else if (event.keyCode === 87) {
+                playerRotate(-1);
+            }
+        });
+
+        playerReset();
+        updateScore();
+        update();
+    </script>
+    <script>
+        // Testes Unitários
+        function testCreateMatrix() {
+            const matrix = createMatrix(3, 3);
+            if (matrix.length !== 3 || matrix[0].length !== 3) {
+                console.error('testCreateMatrix FAILED');
+            } else {
+                console.log('testCreateMatrix PASSED');
+            }
+        }
+
+        function testPlayerMove() {
+            const initialX = player.pos.x;
+            playerMove(1);
+            if (player.pos.x !== initialX + 1) {
+                console.error('testPlayerMove FAILED');
+            } else {
+                console.log('testPlayerMove PASSED');
+            }
+            playerMove(-1);  // Reset position
+        }
+
+        function testPlayerRotate() {
+            const initialMatrix = JSON.stringify(player.matrix);
+            playerRotate(1);
+            if (JSON.stringify(player.matrix) === initialMatrix) {
+                console.error('testPlayerRotate FAILED');
+            } else {
+                console.log('testPlayerRotate PASSED');
+            }
+        }
+
+        function testCollision() {
+            player.pos.set(5, 19);
+            const collided = collide(arena, player);
+            if (!collided) {
+                console.error('testCollision FAILED');
+            } else {
+                console.log('testCollision PASSED');
+            }
+        }
+
+        function runTests() {
+            testCreateMatrix();
+            testPlayerMove();
+            testPlayerRotate();
+            testCollision();
+        }
+
+        runTests();
+    </script>
+</body>
+</html>
