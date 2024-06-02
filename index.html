@@ -10,6 +10,14 @@
             font-family: 'Press Start 2P', cursive;
             color: #ffffff;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
         }
         #game-container {
             background-color: #1e1e1e;
@@ -33,8 +41,7 @@
             border-radius: 5px;
         }
         #scoreboard {
-            margin: 20px auto;
-            width: 320px;
+            margin: 20px;
             text-align: center;
             background-color: #1e1e1e;
             padding: 10px;
@@ -42,8 +49,8 @@
             border-radius: 5px;
         }
         #help {
-            margin: 20px auto;
-            width: 80%;
+            margin: 20px;
+            width: 300px;
             text-align: left;
             background-color: #1e1e1e;
             padding: 20px;
@@ -54,22 +61,24 @@
 </head>
 <body>
     <h1>DESAFIO TETRIS DO BOOTCAMP</h1>
-    <div id="game-container">
-        <canvas id="tetris" width="300" height="600"></canvas>
+    <div id="container">
+        <div id="help">
+            <h2>Como Jogar</h2>
+            <p>Use as setas do teclado para mover as peças:</p>
+            <ul>
+                <li>Seta Esquerda: Mover para a esquerda</li>
+                <li>Seta Direita: Mover para a direita</li>
+                <li>Seta para Baixo: Acelerar a queda da peça</li>
+                <li>Tecla W: Girar a peça</li>
+            </ul>
+            <p>Complete linhas para ganhar pontos. Ao completar 50 pontos, você ganhará um cupom de desconto que será exibido na tela.</p>
+        </div>
+        <div id="game-container">
+            <canvas id="tetris" width="300" height="600"></canvas>
+        </div>
     </div>
     <div id="scoreboard">Pontuação: <span id="score">0</span></div>
     <div class="coupon" id="coupon">Parabéns! Você ganhou um cupom de desconto: DESCONTO50</div>
-    <div id="help">
-        <h2>Como Jogar</h2>
-        <p>Use as setas do teclado para mover as peças:</p>
-        <ul>
-            <li>Seta Esquerda: Mover para a esquerda</li>
-            <li>Seta Direita: Mover para a direita</li>
-            <li>Seta para Baixo: Acelerar a queda da peça</li>
-            <li>Tecla W: Girar a peça</li>
-        </ul>
-        <p>Complete linhas para ganhar pontos. Ao completar 50 pontos, você ganhará um cupom de desconto que será exibido na tela.</p>
-    </div>
     <script>
         const canvas = document.getElementById('tetris');
         const context = canvas.getContext('2d');
@@ -331,57 +340,6 @@
         playerReset();
         updateScore();
         update();
-    </script>
-    <script>
-        // Testes Unitários
-        function testCreateMatrix() {
-            const matrix = createMatrix(3, 3);
-            if (matrix.length !== 3 || matrix[0].length !== 3) {
-                console.error('testCreateMatrix FAILED');
-            } else {
-                console.log('testCreateMatrix PASSED');
-            }
-        }
-
-        function testPlayerMove() {
-            const initialX = player.pos.x;
-            playerMove(1);
-            if (player.pos.x !== initialX + 1) {
-                console.error('testPlayerMove FAILED');
-            } else {
-                console.log('testPlayerMove PASSED');
-            }
-            playerMove(-1);  // Reset position
-        }
-
-        function testPlayerRotate() {
-            const initialMatrix = JSON.stringify(player.matrix);
-            playerRotate(1);
-            if (JSON.stringify(player.matrix) === initialMatrix) {
-                console.error('testPlayerRotate FAILED');
-            } else {
-                console.log('testPlayerRotate PASSED');
-            }
-        }
-
-        function testCollision() {
-            player.pos.set(5, 19);
-            const collided = collide(arena, player);
-            if (!collided) {
-                console.error('testCollision FAILED');
-            } else {
-                console.log('testCollision PASSED');
-            }
-        }
-
-        function runTests() {
-            testCreateMatrix();
-            testPlayerMove();
-            testPlayerRotate();
-            testCollision();
-        }
-
-        runTests();
     </script>
 </body>
 </html>
